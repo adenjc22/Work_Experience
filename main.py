@@ -18,5 +18,21 @@ def transcrie_audio(file_path: str) -> str:
     print(f"Transcribed text: {text}")
     return text
 
-transcrie_audio("complaint.wav")
+def fetch_sap_info(phone_number: str) -> dict:
+    result = sap_data[sap_data['CustomerPhone'] == phone_number]
+    if not result.empty:
+        return result.to_dict(orient='records')[0]
+    return None
+
+def ai_response(text: str, sap_info: dict = None) -> str:
+    prompt = f"You are a customer service assistant.\nCustomer said: {text}\n"
+    if sap_info:
+        prompt += f"Customer info from SAP: {sap_info}\n"
+    prompt += "Provide a helpful response."
+    
+    response = client.chat.completions.create(
+        model="gpt-4",
+        messages=[{"role": "user", "content": prompt}]
+    )
+    return response.choices[0].message.content
 
