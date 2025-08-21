@@ -3,19 +3,11 @@ import json
 import whisper 
 from openai import OpenAI
 import warnings
-import soundfile as sf
-import sounddevice as sd
-import numpy as np
-import wave
-import pyttsx3
-import keyboard
-import time
-import os
-from datetime import datetime
 warnings.filterwarnings("ignore")
 
 
-client = OpenAI(api_key="API_KEY")
+
+client = OpenAI(api_key="api key")
 
 
 client = OpenAI(api_key="API_KEY")
@@ -198,8 +190,10 @@ def middleware_call(phone_number: str, audio_file: str):
     print(final_reply)
     return final_reply
 
+middleware_call(447911000012,"delivery_inquiry.wav")
+middleware_call(447911000018,"complaint.wav")
+middleware_call(447911000032,"human_escalation.wav")
+middleware_call(447911000082,"order_status_check.wav")
+middleware_call(447911000085,"info_request.wav")
 
 print(conversation_log)
-
-if __name__ == "__main__":
-    live_conversation(447911000012)
