@@ -2,9 +2,12 @@ import pandas as pd
 import json
 import whisper 
 from openai import OpenAI
+import warnings
+warnings.filterwarnings("ignore")
 
 
-client = OpenAI(api_key="API_KEY")
+
+client = OpenAI(api_key="api key")
 
 sap_data = pd.read_excel("demo_sap.xlsx")
 
@@ -75,3 +78,9 @@ def middleware_call(phone_number: str, audio_file: str):
     return final_reply
 
 middleware_call(447911000012,"delivery_inquiry.wav")
+middleware_call(447911000018,"complaint.wav")
+middleware_call(447911000032,"human_escalation.wav")
+middleware_call(447911000082,"order_status_check.wav")
+middleware_call(447911000085,"info_request.wav")
+
+print(conversation_log)
