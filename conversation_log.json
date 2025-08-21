@@ -1,0 +1,18 @@
+[
+    {
+        "phone": 447911000012,
+        "audio_file": "delivery_inquiry.wav",
+        "input_text": " Hello, can you tell me when my package will be delivered? The order number should be under my phone number.",
+        "sap_info": {
+            "OrderNumber": 1012,
+            "CustomerPhone": 447911000012,
+            "Status": "Delivered",
+            "DeliveryDate": "2025-08-14",
+            "Product": "Keyboard",
+            "Quantity": 3,
+            "Notes": "Signed by neighbor"
+        },
+        "ai_response": "Hello! Thank you for reaching out. Your package, containing three keyboards, has already been delivered. The delivery date was on August 14, 2025, and it was signed for by your neighbor. If you need any further assistance or have any other questions, feel free to ask!",
+        "resolved": true
+    }
+]

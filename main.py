@@ -15,19 +15,14 @@ from datetime import datetime
 warnings.filterwarnings("ignore")
 
 
+client = OpenAI(api_key="API_KEY")
+
 
 client = OpenAI(api_key="API_KEY")
 sap_data = pd.read_excel("demo_sap.xlsx")
 model = whisper.load_model("small")
 
 conversation_log = []
-
-SAMPLE_RATE = 16000  # Whisper prefers 16kHz
-CHANNELS = 1
-THRESHOLD = 0.02
-CHUNK_SIZE = 1024
-
-LOG_DIR = "logs"
 
 def transcribe_audio(file_path: str) -> str:
     print(f"Transcribing {file_path}")
@@ -164,53 +159,12 @@ def ai_response(text: str, sap_info: dict = None) -> str:
         messages=[{"role": "user", "content": prompt}]
         )
     return response.choices[0].message.content
-
-def live_conversation(phone_number: int):
-   log_path = create_new_log_file()
-   conversation_log = load_conversation_log(log_path)
-   sap_data = fetch_sap_info(phone_number)
-   
-   while True:
-        try:
-            print("ctrl C to exit")
-            audio_file = speech_toggle()
-            text = transcribe_audio(audio_file)
-
-            if text is None:
-                print("No transcription available, try again.")
-                continue
-
-            if text.strip().lower() == "quit":
-                print("Ending Convo")
-                conversation_log["resolved"] = True
-                save_conversation_log(log_path, conversation_log)
-                break
-            
-            reply = ai_response(text, sap_data)
-            text_to_speech_fallback(reply)
-
-            conversation_log["entries"].append({
-                "input": text,
-                "reply": reply,
-                "phone": phone_number
-            })
-            save_conversation_log(log_path, conversation_log)
-        
-        except KeyboardInterrupt:
-            print("exit")
-            conversation_log["resolved"] = True
-            save_conversation_log(log_path, conversation_log)
-            break
-
     
 
-def middleware_call(phone_number: str):
+def middleware_call(phone_number: str, audio_file: str):
 
+    text = transcribe_audio(audio_file)
     sap_info = fetch_sap_info(phone_number)
-
-    audio = speech_toggle("input.wav")
-    text = transcribe_audio(audio)
-
 
     reply = ai_response(text, sap_info)
     
