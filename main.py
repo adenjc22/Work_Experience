@@ -3,11 +3,17 @@ import json
 import whisper 
 from openai import OpenAI
 import warnings
+import soundfile as sf
+import sounddevice as sd
+import numpy as np
+import wave
+import websockets
+import pyttsx3
 warnings.filterwarnings("ignore")
 
 
 
-client = OpenAI(api_key="api key")
+client = OpenAI(api_key="YOUR_API_KEY_HERE")
 
 
 client = OpenAI(api_key="API_KEY")
@@ -23,65 +29,28 @@ def transcribe_audio(file_path: str) -> str:
     print(f"Transcribed text: {text}")
     return text
 
-def create_new_log_file():
-    os.makedirs(LOG_DIR, exist_ok=True)
-
-    existing_logs = [f for f in os.listdir(LOG_DIR) if f.startswith("conversation_log_") and f.endswith(".json")]
-    if existing_logs:
-        indices = [int(f.split("_")[-1].split(".")[0]) for f in existing_logs if f.split("_")[-1].split(".")[0].isdigit()]
-        next_index = max(indices) + 1 if indices else 1
-    else:
-        next_index = 1
-
-    filename = f"conversation_log_{next_index}.json"
-    filepath = os.path.join(LOG_DIR, filename)
-
-    conversation_log = {
-        "session_id": next_index,
-        "created_at": datetime.now().isoformat(),
-        "resolved": False,
-        "entries": []
-    }
-
-    with open(filepath, 'w') as f:
-        json.dump(conversation_log, f, indent=4)
-
-    print(f"Created new log: {filepath}")
-    return filepath
-
-
-def load_conversation_log(file_name):
-    with open(file_name, "r") as f:
-        return json.load(f)
-    
-def save_conversation_log(filepath, conversation_log):
-    with open(filepath, 'w') as f:
-        json.dump(conversation_log, f, indent = 4)
-
-
-def text_to_speech(text, voice="alloy"):
-    with client.audio.speech.with_streaming_response.create(
+def text_to_speech(text, audio_file, voice="alloy"):
+    response = client.audio.speech.create(
         model="gpt-4o-mini-tts",
         voice=voice,
         input=text
-    ) as response:
-        response.stream_to_playback()
+    )
 
+    with open(audio_file, "wb") as f:
+        f.write(response.read())
 
+    data, samplerate = sf.read(audio_file)
+    sd.play(data, samplerate)
+    sd.wait()
 
-def text_to_speech_fallback(text):
-    #fallback if chat gpt not working
-
-    if not text.strip():
-        return
-
-    print("speaking locally")
+def text_to_speech_fallback(text, audio_file):
     engine = pyttsx3.init()
-    engine.setProperty('rate', 180)
-    engine.setProperty('volume', 1)
-
     engine.say(text)
     engine.runAndWait()
+
+    with open(audio_file, "wb") as f:
+        engine.save_to_file(text, audio_file)
+
 
 
 def play_audio(audio_file):
@@ -151,11 +120,14 @@ def ai_response(text: str, sap_info: dict = None) -> str:
         messages=[{"role": "user", "content": prompt}]
         )
     return response.choices[0].message.content
+
+
     
 
-def middleware_call(phone_number: str, audio_file: str):
+def middleware_call(phone_number: str):
 
-    text = transcribe_audio(audio_file)
+    audio = speech_to_text("input.wav", duration=5)
+    text = transcribe_audio(audio)
     sap_info = fetch_sap_info(phone_number)
 
     reply = ai_response(text, sap_info)
@@ -190,10 +162,13 @@ def middleware_call(phone_number: str, audio_file: str):
     print(final_reply)
     return final_reply
 
+'''
+
 middleware_call(447911000012,"delivery_inquiry.wav")
 middleware_call(447911000018,"complaint.wav")
 middleware_call(447911000032,"human_escalation.wav")
 middleware_call(447911000082,"order_status_check.wav")
 middleware_call(447911000085,"info_request.wav")
+'''
 
 print(conversation_log)

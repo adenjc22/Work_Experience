@@ -1,8 +1,7 @@
 [
     {
         "phone": 447911000012,
-        "audio_file": "delivery_inquiry.wav",
-        "input_text": " Hello, can you tell me when my package will be delivered? The order number should be under my phone number.",
+        "input_audio": "input.wav",
         "sap_info": {
             "OrderNumber": 1012,
             "CustomerPhone": 447911000012,
@@ -12,71 +11,7 @@
             "Quantity": 3,
             "Notes": "Signed by neighbor"
         },
-        "ai_response": "Hello! Thank you for reaching out. I see that your order number 1012 for 3 keyboards has already been delivered on August 14, 2025. The package was signed for by your neighbor. If you have any further questions or need assistance, feel free to ask!",
-        "resolved": true
-    },
-    {
-        "phone": 447911000018,
-        "audio_file": "complaint.wav",
-        "input_text": " I received the wrong item in my order. I asked for a monitor but I got a keyboard instead.",
-        "sap_info": {
-            "OrderNumber": 1018,
-            "CustomerPhone": 447911000018,
-            "Status": "Shipped",
-            "DeliveryDate": "2025-08-15",
-            "Product": "Mouse",
-            "Quantity": 5,
-            "Notes": "Call before delivery"
-        },
-        "ai_response": "Thank you for reaching out to us, and I apologize for the mix-up with your order. I see that you ordered a monitor, but it looks like you received a keyboard instead. \n\nTo resolve this issue promptly, I will need to initiate a return for the incorrect item and ensure that your monitor is shipped to you as soon as possible. \n\nCould you please confirm if the keyboard is unopened and in its original packaging? Additionally, if you could provide me with any other details or questions you may have, I'll be happy to assist you further.\n\nOnce I have your confirmation, I\u2019ll arrange for the return and the correct item to be sent to you. Thank you for your understanding!",
-        "resolved": true
-    },
-    {
-        "phone": 447911000032,
-        "audio_file": "human_escalation.wav",
-        "input_text": " I've been charged twice for the same order on my credit card, and I need this fixed right away.",
-        "sap_info": {
-            "OrderNumber": 1032,
-            "CustomerPhone": 447911000032,
-            "Status": "Shipped",
-            "DeliveryDate": "2025-08-21",
-            "Product": "Monitor 24\"",
-            "Quantity": 2,
-            "Notes": "-"
-        },
-        "ai_response": "Subject: Double Charge on Order #1032\n\nDear [Customer's Name],\n\nThank you for reaching out about the double charge on your order. I understand how concerning this can be, and I\u2019m here to help you resolve this issue as quickly as possible.\n\nI have noted that your order (Order #1032) for the \"Monitor 24\"\" has been shipped and is scheduled for delivery on August 21, 2025. I will begin the process of investigating the double charge on your credit card. \n\nIn the meantime, could you please provide the following details to assist with the investigation:\n1. The exact amount charged twice.\n2. A screenshot or copy of your bank statement showing both charges (if available).\n\nOnce I have this information, I will work to get this resolved for you promptly. If you have any further questions or concerns, please don\u2019t hesitate to reach out.\n\nBest regards,\n\n[Your Name]  \nCustomer Service Team  \n[Your Company Name]  \n[Your Contact Information]  ",
-        "resolved": true
-    },
-    {
-        "phone": 447911000082,
-        "audio_file": "order_status_check.wav",
-        "input_text": " Hi, I'd like to check the status of my order, I think it's a laptop I ordered last week.",
-        "sap_info": {
-            "OrderNumber": 1082,
-            "CustomerPhone": 447911000082,
-            "Status": "Processing",
-            "DeliveryDate": "2025-08-29",
-            "Product": "Tablet",
-            "Quantity": 3,
-            "Notes": "-"
-        },
-        "ai_response": "Hello! Thank you for reaching out to us. I understand that you're looking to check the status of your order. \n\nI have the details of your order (Order Number: 1082). However, it appears that the product you ordered is actually a tablet, not a laptop, and your order is currently in processing status. The expected delivery date is set for August 29, 2025. \n\nIf you have any further questions or need assistance with anything else, please feel free to ask!",
-        "resolved": true
-    },
-    {
-        "phone": 447911000085,
-        "audio_file": "info_request.wav",
-        "input_text": " Can you tell me what products are currently available in stock, especially tablets or webcams?",
-        "sap_info": {
-            "OrderNumber": 1085,
-            "CustomerPhone": 447911000085,
-            "Status": "Shipped",
-            "DeliveryDate": "2025-08-24",
-            "Product": "Laptop Model X",
-            "Quantity": 1,
-            "Notes": "Left at front door"
-        },
-        "ai_response": "Thank you for your inquiry! I can assist you with checking the availability of tablets and webcams. \n\nCurrently, we have the following products available in stock:\n\n**Tablets:**\n1. **Tablet Model A** - 30 units in stock\n2. **Tablet Model B** - 15 units in stock\n3. **Tablet Model C** - 25 units in stock\n\n**Webcams:**\n1. **Webcam Model D** - 20 units in stock\n2. **Webcam Model E** - 12 units in stock\n3. **Webcam Model F** - 18 units in stock\n\nIf you would like to know more details about any of these products or if you\u2019re interested in making a purchase, please let me know!",
+        "ai_response": "Hello! Thank you for reaching out for help with your order. \n\nYour order number is **1012**, and it consists of **3 keyboards**. The delivery was marked as successful, and it was signed for by your neighbor on **August 14, 2025**.\n\nIf you need further assistance, such as information about your products or any other questions, feel free to ask!",
         "resolved": true
     }
 ]
