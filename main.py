@@ -7,8 +7,11 @@ import soundfile as sf
 import sounddevice as sd
 import numpy as np
 import wave
-import websockets
 import pyttsx3
+import keyboard
+import time
+import os
+from datetime import datetime
 warnings.filterwarnings("ignore")
 
 
@@ -22,6 +25,13 @@ model = whisper.load_model("small")
 
 conversation_log = []
 
+SAMPLE_RATE = 16000  # Whisper prefers 16kHz
+CHANNELS = 1
+THRESHOLD = 0.02
+CHUNK_SIZE = 1024
+
+LOG_DIR = "logs"
+
 def transcribe_audio(file_path: str) -> str:
     print(f"Transcribing {file_path}")
     result = model.transcribe(file_path)
@@ -29,28 +39,65 @@ def transcribe_audio(file_path: str) -> str:
     print(f"Transcribed text: {text}")
     return text
 
-def text_to_speech(text, audio_file, voice="alloy"):
-    response = client.audio.speech.create(
+def create_new_log_file():
+    os.makedirs(LOG_DIR, exist_ok=True)
+
+    existing_logs = [f for f in os.listdir(LOG_DIR) if f.startswith("conversation_log_") and f.endswith(".json")]
+    if existing_logs:
+        indices = [int(f.split("_")[-1].split(".")[0]) for f in existing_logs if f.split("_")[-1].split(".")[0].isdigit()]
+        next_index = max(indices) + 1 if indices else 1
+    else:
+        next_index = 1
+
+    filename = f"conversation_log_{next_index}.json"
+    filepath = os.path.join(LOG_DIR, filename)
+
+    conversation_log = {
+        "session_id": next_index,
+        "created_at": datetime.now().isoformat(),
+        "resolved": False,
+        "entries": []
+    }
+
+    with open(filepath, 'w') as f:
+        json.dump(conversation_log, f, indent=4)
+
+    print(f"Created new log: {filepath}")
+    return filepath
+
+
+def load_conversation_log(file_name):
+    with open(file_name, "r") as f:
+        return json.load(f)
+    
+def save_conversation_log(filepath, conversation_log):
+    with open(filepath, 'w') as f:
+        json.dump(conversation_log, f, indent = 4)
+
+
+def text_to_speech(text, voice="alloy"):
+    with client.audio.speech.with_streaming_response.create(
         model="gpt-4o-mini-tts",
         voice=voice,
         input=text
-    )
+    ) as response:
+        response.stream_to_playback()
 
-    with open(audio_file, "wb") as f:
-        f.write(response.read())
 
-    data, samplerate = sf.read(audio_file)
-    sd.play(data, samplerate)
-    sd.wait()
 
-def text_to_speech_fallback(text, audio_file):
+def text_to_speech_fallback(text):
+    #fallback if chat gpt not working
+
+    if not text.strip():
+        return
+
+    print("speaking locally")
     engine = pyttsx3.init()
+    engine.setProperty('rate', 180)
+    engine.setProperty('volume', 1)
+
     engine.say(text)
     engine.runAndWait()
-
-    with open(audio_file, "wb") as f:
-        engine.save_to_file(text, audio_file)
-
 
 
 def play_audio(audio_file):
@@ -121,14 +168,52 @@ def ai_response(text: str, sap_info: dict = None) -> str:
         )
     return response.choices[0].message.content
 
+def live_conversation(phone_number: int):
+   log_path = create_new_log_file()
+   conversation_log = load_conversation_log(log_path)
+   sap_data = fetch_sap_info(phone_number)
+   
+   while True:
+        try:
+            print("ctrl C to exit")
+            audio_file = speech_toggle()
+            text = transcribe_audio(audio_file)
+
+            if text is None:
+                print("No transcription available, try again.")
+                continue
+
+            if text.strip().lower() == "quit":
+                print("Ending Convo")
+                conversation_log["resolved"] = True
+                save_conversation_log(log_path, conversation_log)
+                break
+            
+            reply = ai_response(text, sap_data)
+            text_to_speech_fallback(reply)
+
+            conversation_log["entries"].append({
+                "input": text,
+                "reply": reply,
+                "phone": phone_number
+            })
+            save_conversation_log(log_path, conversation_log)
+        
+        except KeyboardInterrupt:
+            print("exit")
+            conversation_log["resolved"] = True
+            save_conversation_log(log_path, conversation_log)
+            break
 
     
 
 def middleware_call(phone_number: str):
 
-    audio = speech_to_text("input.wav", duration=5)
-    text = transcribe_audio(audio)
     sap_info = fetch_sap_info(phone_number)
+
+    audio = speech_toggle("input.wav")
+    text = transcribe_audio(audio)
+
 
     reply = ai_response(text, sap_info)
     
@@ -162,13 +247,5 @@ def middleware_call(phone_number: str):
     print(final_reply)
     return final_reply
 
-'''
-
-middleware_call(447911000012,"delivery_inquiry.wav")
-middleware_call(447911000018,"complaint.wav")
-middleware_call(447911000032,"human_escalation.wav")
-middleware_call(447911000082,"order_status_check.wav")
-middleware_call(447911000085,"info_request.wav")
-'''
 
 print(conversation_log)
