@@ -14,7 +14,8 @@ import os
 from datetime import datetime
 warnings.filterwarnings("ignore")
 import chromadb
-from chromadb.config import Settings
+from dotenv import load_dotenv
+
 
 # create / load persistent database folder
 persist_path = os.path.abspath("chroma_db")
