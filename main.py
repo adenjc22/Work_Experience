@@ -13,6 +13,16 @@ import time
 import os
 from datetime import datetime
 warnings.filterwarnings("ignore")
+import chromadb
+from chromadb.config import Settings
+
+# create / load persistent database folder
+persist_path = os.path.abspath("chroma_db")
+chroma_client = chromadb.PersistentClient(path=persist_path)
+# one collection to hold all customer memories
+memory_collection = chroma_client.get_or_create_collection("customer_memory")
+
+print("After restart, count:", memory_collection.count())
 
 
 
@@ -75,13 +85,59 @@ def save_conversation_log(filepath, conversation_log):
         json.dump(conversation_log, f, indent = 4)
 
 
+def store_memory(phone_number: int, user_input: str, ai_reply:str):
+    #  Save one interaction into Chroma memory for future retrieval
+    try:
+        text = f"Customer: {user_input},\n AI:{ai_reply}"
+
+        #embedding vector (sematic representaion)
+        embedding = client.embeddings.create(
+            model= "text-embedding-3-small",
+            input= text
+        ).data[0].embedding
+
+        memory_collection.add(
+            ids=[f"{phone_number}_{hash(text)}"],
+            documents=[text],
+            metadatas=[{"phone": str(phone_number)}],
+            embeddings=[embedding],
+        )
+
+        print(f"stored memory for {phone_number}")
+        
+
+    except Exception as e:
+        print(f"Memory store failed {e}")
+
+def retrieve_memeory(phone_number:int, query:str, n_results: int =3):
+    #Fetch the most relevant past exchanges for this phone number.
+    try:
+        embedding = client.embeddings.create(
+            model="text-embedding-3-small",
+            input=query
+        ).data[0].embedding
+
+        results = memory_collection.query(
+            query_embeddings=[embedding],
+            n_results= n_results,
+            where={"phone": str(phone_number)}
+        )
+
+        matches = results.get("documents", [[]])[0]
+        if matches:
+            print(f"retrieved {len(matches)}, memories from {phone_number}")
+        return matches
+    except Exception as a:
+        print("Retrival failed")
+        return []
+
 def text_to_speech(text, voice="alloy"):
     with client.audio.speech.with_streaming_response.create(
         model="gpt-4o-mini-tts",
         voice=voice,
         input=text
     ) as response:
-        response.stream_to_playback()
+        response.str()
 
 
 
@@ -105,27 +161,13 @@ def play_audio(audio_file):
     sd.play(data, samplerate)
     sd.wait()
 
-def speech_to_text(filename, duration=5, sample_rate=SAMPLE_RATE):
-    print("recording...")
-    recording = sd.rec(int(duration * sample_rate), samplerate=sample_rate, channels=2)
-    sd.wait()
-    print("done recording")
-
-    #save as wav file
-    with wave.open(filename, 'wb') as wf:
-        wf.setnchannels(2)
-        wf.setsampwidth(2)
-        wf.setframerate(sample_rate)
-        wf.writeframes((recording * 32767).astype(np.int16).tobytes())
-
-    return filename
 
 def speech_toggle():
     print("Hold spacebar to talk")
     while not keyboard.is_pressed("space"):
         time.sleep(0.01)
-    print("RECORDING")
-
+    print("RECORDING")            
+ 
     frames = []
     stream = sd.InputStream(samplerate=SAMPLE_RATE, channels=CHANNELS, dtype='float32')
     with stream:
@@ -156,17 +198,50 @@ def fetch_sap_info(phone_number: int) -> dict:
         return result.to_dict(orient='records')[0]
     return None
 
-def ai_response(text: str, sap_info: dict = None) -> str:
-    prompt = f"You are a customer service assistant. Do not give information that is not specfically asked for. \nCustomer said: {text}\n"
+
+def ai_response(user_text: str, sap_info: dict = None, phone_number:int = None) -> str:
+    system_prompt = """
+    You are a voice-based customer service assistant.
+    You can access a history of this customer's past interactions (retrieved from memory).
+    Use that history as if you personally recall those past conversations.
+    If the customer asks about "our last chat" or "what I said before", summarize or quote from those past interactions.
+
+    Rules:
+    - Keep replies under 40 words unless absolutely necessary.
+    - Speak conversationally — sound like a real person, not a bot.
+    - Do not mention memory retrieval, data storage, or being an AI.
+    - Use the customer's SAP data and past interactions naturally in responses.
+    - If an issue cannot be solved automatically, politely escalate it.
+    - When greeting or closing, keep it brief and professional.
+    """
+    try:
+        past_memories = retrieve_memeory(phone_number, user_text)
+        if past_memories and isinstance(past_memories, list) and len(past_memories) >0:
+            memory_context = "/n--------------------------------/n".join(past_memories) if past_memories else "None"
+        else:
+            memory_context = None
+    except Exception as e:
+        print(f"Failed{e}")
+    
+    prompt = f"{system_prompt}. The customer said: {user_text}\n"
     if sap_info:
         prompt += f"Customer info from SAP: {sap_info}\n"
-    prompt += "Provide a helpful response."
+    if memory_context:
+        prompt += f"Below is a summary of your previous conversations with this same customer. Use this as your memory to provide continuity and avoid repeating questions PAST INTERACTIONS: {memory_context}"
+    prompt += "Provide a helpful response following the context and rules that where given"
     
     response = client.chat.completions.create(
          model="gpt-4o-mini",
         messages=[{"role": "user", "content": prompt}]
         )
-    return response.choices[0].message.content
+    
+    prompt = prompt[-8000:]
+    
+    reply = response.choices[0].message.content
+    store_memory(phone_number, user_text, reply)
+    print(memory_collection.count())
+    print(memory_collection.peek())
+    return reply
 
 def live_conversation(phone_number: int):
    log_path = create_new_log_file()
@@ -189,7 +264,9 @@ def live_conversation(phone_number: int):
                 save_conversation_log(log_path, conversation_log)
                 break
             
-            reply = ai_response(text, sap_data)
+            reply = ai_response(text, sap_data, phone_number)
+            #if text_to_speech(reply):
+            #    text_to_speech(reply)
             text_to_speech_fallback(reply)
 
             conversation_log["entries"].append({
@@ -205,47 +282,7 @@ def live_conversation(phone_number: int):
             save_conversation_log(log_path, conversation_log)
             break
 
+
     
-
-def middleware_call(phone_number: str):
-
-    sap_info = fetch_sap_info(phone_number)
-
-    audio = speech_toggle("input.wav")
-    text = transcribe_audio(audio)
-
-
-    reply = ai_response(text, sap_info)
-    
-    #Determine if AI can resolve
-    if sap_info is None: 
-        resolved = False
-        escalation_message = "This query requires human support. Escalating to agent..."
-        final_reply = escalation_message
-    else:
-        resolved = True
-        final_reply = reply  # AI can resolve using SAP info
-
-    text_to_speech_fallback(final_reply, "output.wav")
-    
-    # Step 5: Log conversation
-    log_entry = {
-        "phone": phone_number,
-        "input_audio": audio,
-        "sap_info": sap_info,
-        "ai_response": reply,
-        "resolved": resolved
-    }
-    
-    conversation_log.append(log_entry)
-    
-    # Step 6: Save log to JSON
-    with open("conversation_log.json", "w") as f:
-        json.dump(conversation_log, f, indent=4)
-    
-    # Step 7: Return final reply (AI or escalation message)
-    print(final_reply)
-    return final_reply
-
 
 print(conversation_log)

@@ -1,6 +1,7 @@
+pandas
+numpy
 openai
-pandas 
-openai-whisper
+whisper
 soundfile
 sounddevice
 openpyxl>=3.1.0
