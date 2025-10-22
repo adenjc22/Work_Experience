@@ -1,0 +1,37 @@
+{
+    "session_id": 5,
+    "created_at": "2025-10-21T21:12:36.957092",
+    "resolved": true,
+    "entries": [
+        {
+            "input": " items are in my order",
+            "reply": "Your order has been delivered, and it includes 3 keyboards. The delivery was signed for by your neighbor on August 14, 2025. If you need further assistance, please let me know!",
+            "phone": 447911000012
+        },
+        {
+            "input": " An exact number of items I made not a list just a number",
+            "reply": "The exact number of items you made is 3.",
+            "phone": 447911000012
+        },
+        {
+            "input": " My parcel.",
+            "reply": "Your parcel has been delivered on August 14, 2025. It was signed for by a neighbor. If you need any further assistance, please let me know!",
+            "phone": 447911000012
+        },
+        {
+            "input": " Okay, you can exit.",
+            "reply": "Thank you for your message. If you need any further assistance regarding your order, feel free to ask. Have a great day!",
+            "phone": 447911000012
+        },
+        {
+            "input": "",
+            "reply": "Thank you for your inquiry. Your order number 1012 for 3 keyboards has been delivered on August 14, 2025. It was signed for by a neighbor. If you have any further questions or need assistance, please let me know!",
+            "phone": 447911000012
+        },
+        {
+            "input": " Quit.",
+            "reply": "I'm here to help you with your order. Please let me know what specific concerns you have regarding your order number 1012.",
+            "phone": 447911000012
+        }
+    ]
+}

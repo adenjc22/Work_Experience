@@ -1,0 +1,12 @@
+[
+    {
+        "input": " The exact amount of orders I have, specifically for items, did be a single number.",
+        "reply": "Hello! Thank you for reaching out. \n\nI see that you have a total of 3 keyboards in your order, which was delivered on August 14, 2025. If you need any further assistance regarding this order or have any other questions, please feel free to ask!",
+        "phone": 447911000012
+    },
+    {
+        "input": " My previous question. Give it to me exactly.",
+        "reply": "Hello! I see that you are referring to your previous question regarding your order. Here are the details for your order number 1012:\n\n- **Product**: Keyboard\n- **Quantity**: 3\n- **Status**: Delivered\n- **Delivery Date**: August 14, 2025\n- **Notes**: Signed by neighbor\n\nIf you have any further questions or need assistance, feel free to ask!",
+        "phone": 447911000012
+    }
+]

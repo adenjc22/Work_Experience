@@ -1,0 +1,7 @@
+openai
+pandas 
+openai-whisper
+soundfile
+sounddevice
+openpyxl>=3.1.0
+pyttsx3
