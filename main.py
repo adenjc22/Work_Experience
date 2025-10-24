@@ -15,6 +15,12 @@ from datetime import datetime
 warnings.filterwarnings("ignore")
 import chromadb
 from dotenv import load_dotenv
+load_dotenv()
+
+api_key = os.getenv("API_KEY")
+if not api_key:
+    raise ValueError("❌ OPENAI_API_KEY not found. Make sure it's set in your .env file.")
+
 
 
 # create / load persistent database folder
@@ -27,10 +33,7 @@ print("After restart, count:", memory_collection.count())
 
 
 
-client = OpenAI(api_key="YOUR_API_KEY_HERE")
-
-
-client = OpenAI(api_key="API_KEY")
+client = OpenAI(api_key=api_key)
 sap_data = pd.read_excel("demo_sap.xlsx")
 model = whisper.load_model("small")
 
@@ -241,7 +244,10 @@ def ai_response(user_text: str, sap_info: dict = None, phone_number:int = None) 
     reply = response.choices[0].message.content
     store_memory(phone_number, user_text, reply)
     print(memory_collection.count())
-    print(memory_collection.peek())
+    peek = memory_collection.peek()
+    print(f"Total memories: {len(peek['documents'])}")
+    for i, meta in enumerate(peek['metadatas']):
+        print(f"  {i+1}. Phone: {meta['phone']} | Text: {peek['documents'][i][:60]}...")
     return reply
 
 def live_conversation(phone_number: int):
@@ -283,7 +289,5 @@ def live_conversation(phone_number: int):
             save_conversation_log(log_path, conversation_log)
             break
 
-
-    
-
-print(conversation_log)
+if __name__ == "__main__":
+    live_conversation(phone_number=447911000079)
