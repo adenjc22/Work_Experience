@@ -19,7 +19,7 @@ load_dotenv()
 
 api_key = os.getenv("API_KEY")
 if not api_key:
-    raise ValueError("❌ OPENAI_API_KEY not found. Make sure it's set in your .env file.")
+    raise ValueError("OPENAI_API_KEY not found. Make sure it's set in your .env file.")
 
 
 
@@ -52,6 +52,77 @@ def transcribe_audio(file_path: str) -> str:
     text = result['text']
     print(f"Transcribed text: {text}")
     return text
+
+def create_ticket(conversation_log):
+    entries = conversation_log.get("entries", [])
+
+    if not entries:
+        print("No entries to create ticket")
+        return None
+    
+    MAX = 10
+    tail = entries[-MAX:]
+    
+    full_convo = "\n".join(f"Customer: {e['input']}\nAI: {e['reply']}" for e in tail)
+    last_phone = str(tail[-1].get("phone", "")) if tail else ""
+
+
+    ticket_prompt = f"""
+    You are a support ticket summarizer.
+    Create a structured, concise ticket based on this conversation.
+
+    Conversation:
+    {full_convo}
+
+    Provide your output as a JSON object with the following keys:
+    - ticket_id: a unique short ID
+    - customer_phone
+    - issue_summary
+    - resolution_summary
+    - next_actions
+    - status (e.g. 'Resolved', 'Escalated', 'Pending Human Review')
+    """
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": ticket_prompt}]
+        )
+
+        raw_ticket = response.choices[0].message.content
+        #Try to extract clean JSON text
+        import re
+        match = re.search(r"\{.*\}", raw_ticket, re.DOTALL)
+        if match:
+            raw_ticket = match.group(0)
+
+        ticket_data = json.loads(raw_ticket)
+
+        ticket_data.setdefault("ticket_id", f"TICKET-{int(time.time())}")
+        if not ticket_data.get("customer_phone"):
+            ticket_data["customer_phone"] = last_phone or conversation_log["entries"][0].get("phone", "unknown")
+        ticket_data.setdefault("status", "Pending Human Review")
+        ticket_data.setdefault("priority", "medium")
+
+    except Exception as e:
+        print(f"Ticket failed {e}, fallback...")
+        ticket_data = {
+            "ticket_id": f"TICKET-{int(time.time())}",
+            "customer_phone": conversation_log["entries"][0]["phone"],
+            "issue_summary": "Could not auto-parse summary.",
+            "resolution_summary": "See conversation log for details.",
+            "next_actions": "Manual review required.",
+            "status": "Pending Human Review"
+        }
+
+    # Save ticket file
+    os.makedirs("tickets", exist_ok=True)
+    ticket_file = os.path.join("tickets", f"{ticket_data['ticket_id']}.json")
+
+    with open(ticket_file, "w") as f:
+        json.dump(ticket_data, f, indent=4)
+
+    print(f"Created support ticket: {ticket_file}")
+    return ticket_data
 
 def create_new_log_file():
     os.makedirs(LOG_DIR, exist_ok=True)
@@ -167,32 +238,35 @@ def play_audio(audio_file):
 
 
 def speech_toggle():
-    print("Hold spacebar to talk")
-    while not keyboard.is_pressed("space"):
-        time.sleep(0.01)
-    print("RECORDING")            
- 
-    frames = []
-    stream = sd.InputStream(samplerate=SAMPLE_RATE, channels=CHANNELS, dtype='float32')
-    with stream:
-        while keyboard.is_pressed("space"):
-            data, _ = stream.read(1024)
-            frames.append(data)
-    print("STOPPED RECORDING")
+    try:
+        print("Hold spacebar to talk")
+        while not keyboard.is_pressed("space"):
+            time.sleep(0.01)
+        print("RECORDING")            
+    
+        frames = []
+        stream = sd.InputStream(samplerate=SAMPLE_RATE, channels=CHANNELS, dtype='float32')
+        with stream:
+            while keyboard.is_pressed("space"):
+                data, _ = stream.read(1024)
+                frames.append(data)
+        print("STOPPED RECORDING")
 
-    audio = np.concatenate(frames, axis=0)
+        audio = np.concatenate(frames, axis=0)
 
-    # Convert to int16 and write WAV file
-    filename = "input.wav"
-    int16 = (audio * 32767).astype(np.int16)
-    with wave.open(filename, 'wb') as wf:
-        wf.setnchannels(CHANNELS)
-        wf.setsampwidth(2)
-        wf.setframerate(SAMPLE_RATE)
-        wf.writeframes(int16.tobytes())
+        # Convert to int16 and write WAV file
+        filename = "input.wav"
+        int16 = (audio * 32767).astype(np.int16)
+        with wave.open(filename, 'wb') as wf:
+            wf.setnchannels(CHANNELS)
+            wf.setsampwidth(2)
+            wf.setframerate(SAMPLE_RATE)
+            wf.writeframes(int16.tobytes())
 
-    print(f"Saved recording to {filename}")
-    return filename
+        print(f"Saved recording to {filename}")
+        return filename
+    except KeyboardInterrupt:
+        return None
         
 
 
@@ -209,12 +283,13 @@ def ai_response(user_text: str, sap_info: dict = None, phone_number:int = None) 
     You can access a history of this customer's past interactions (retrieved from memory).
     Use that history as if you personally recall those past conversations.
     If the customer asks about "our last chat" or "what I said before", summarize or quote from those past interactions.
+    You are only a digital assitant and should tell the customer to call a human agent if you do no tknow how to fufill the request as you can only provide info not actually change anything for them
 
     Rules:
-    - Keep replies under 40 words unless absolutely necessary.
+    - Keep replies under 30 words unless absolutely necessary.
     - Speak conversationally — sound like a real person, not a bot.
     - Do not mention memory retrieval, data storage, or being an AI.
-    - Use the customer's SAP data and past interactions naturally in responses.
+    - Use the customer's SAP data and memory retrieval naturally in responses.
     - If an issue cannot be solved automatically, politely escalate it.
     - When greeting or closing, keep it brief and professional.
     """
@@ -259,16 +334,32 @@ def live_conversation(phone_number: int):
         try:
             print("ctrl C to exit")
             audio_file = speech_toggle()
+            if audio_file is None:
+                conversation_log["resolved"] = True
+                save_conversation_log(log_path, conversation_log)
+                if conversation_log["entries"]:
+                    create_ticket(conversation_log)
+                return
             text = transcribe_audio(audio_file)
 
             if text is None:
                 print("No transcription available, try again.")
                 continue
 
-            if text.strip().lower() == "quit":
+            if text.strip().lower() == "goodbye.":
                 print("Ending Convo")
                 conversation_log["resolved"] = True
                 save_conversation_log(log_path, conversation_log)
+                if conversation_log["resolved"]:
+                    print("Generating ticket")
+                    create_ticket(conversation_log)
+                break
+
+            if text.strip().lower() == "quit.":
+                print("Ending Convo")
+                conversation_log["resolved"] = False
+                save_conversation_log(log_path, conversation_log)
+                create_ticket(conversation_log)
                 break
             
             reply = ai_response(text, sap_data, phone_number)
@@ -282,12 +373,16 @@ def live_conversation(phone_number: int):
                 "phone": phone_number
             })
             save_conversation_log(log_path, conversation_log)
-        
+            if conversation_log["resolved"]:
+                print("Generating ticket")
+                create_ticket(conversation_log)
+
         except KeyboardInterrupt:
             print("exit")
             conversation_log["resolved"] = True
             save_conversation_log(log_path, conversation_log)
+            create_ticket(conversation_log)
             break
 
 if __name__ == "__main__":
-    live_conversation(phone_number=447911000079)
+    live_conversation(phone_number=447911000014)

@@ -1,0 +1,9 @@
+{
+    "ticket_id": "TCKT20231203",
+    "customer_phone": null,
+    "issue_summary": "Customer inquired about the status of their order.",
+    "resolution_summary": "The order for 1 Laptop Model X is currently processing and scheduled for delivery on August 26, 2025.",
+    "next_actions": null,
+    "status": "Resolved",
+    "priority": "medium"
+}

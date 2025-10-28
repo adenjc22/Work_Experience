@@ -1,0 +1,9 @@
+{
+    "ticket_id": "ORD123456",
+    "customer_phone": null,
+    "issue_summary": "Customer inquiring about the arrival date of their order.",
+    "resolution_summary": "Order for Laptop Model X is scheduled to arrive on August 26, 2025.",
+    "next_actions": "No further actions required at this time.",
+    "status": "Resolved",
+    "priority": "medium"
+}

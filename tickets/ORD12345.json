@@ -1,0 +1,9 @@
+{
+    "ticket_id": "ORD12345",
+    "customer_phone": null,
+    "issue_summary": "Customer inquires about the status of their order for Laptop Model X and expresses frustration.",
+    "resolution_summary": "The order is still processing with a scheduled delivery date of August 26, 2025.",
+    "next_actions": "Offer to escalate the issue if the customer desires further assistance.",
+    "status": "Pending Human Review",
+    "priority": "medium"
+}

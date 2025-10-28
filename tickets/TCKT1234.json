@@ -1,0 +1,9 @@
+{
+    "ticket_id": "TCKT1234",
+    "customer_phone": null,
+    "issue_summary": "Customer inquired about the status of their order for Laptop Model X, which has not yet arrived. They expressed a desire to return the item.",
+    "resolution_summary": "The order is still processing, with a delivery date set for August 26, 2025. The customer has been informed about the delivery status.",
+    "next_actions": "Escalate the return request for further assistance.",
+    "status": "Escalated",
+    "priority": "medium"
+}
