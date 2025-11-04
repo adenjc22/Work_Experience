@@ -386,3 +386,4 @@ def live_conversation(phone_number: int):
 
 if __name__ == "__main__":
     live_conversation(phone_number=447911000014)
+    #hardcode number from demo_sap.xlsx for testing
